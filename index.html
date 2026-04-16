@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sertlik Dönüştürücü — Shore A / Shore D</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@300;400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg:       #0f0c0c;
+      --panel:    #180f0f;
+      --border:   #2e1a1a;
+      --accent:   #e84a3a;
+      --accent2:  #ff7c6e;
+      --danger:   #ff3b1f;
+      --text:     #e8d8d8;
+      --muted:    #7a5a5a;
+      --mono:     'Share Tech Mono', monospace;
+      --sans:     'Barlow', sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px 80px;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 40px 40px;
+      opacity: 0.4;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .wrapper {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 760px;
+    }
+
+    header { margin-bottom: 48px; }
+
+    h1 {
+      font-size: clamp(28px, 5vw, 46px);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.05;
+      color: #fff;
+    }
+
+    h1 span { color: var(--accent); }
+
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 28px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .tab {
+      font-family: var(--mono);
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 10px 20px;
+      cursor: pointer;
+      border: none;
+      background: none;
+      position: relative;
+      transition: color 0.2s;
+    }
+
+    .tab::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 0; right: 0;
+      height: 2px;
+      background: var(--accent);
+      transform: scaleX(0);
+      transition: transform 0.2s;
+    }
+
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--accent); }
+    .tab.active::after { transform: scaleX(1); }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 36px;
+      animation: fadeUp 0.3s ease both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    .input-group {
+      display: flex;
+      align-items: flex-end;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .field { flex: 1; min-width: 160px; }
+
+    label {
+      display: block;
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    input[type="number"] {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      color: #fff;
+      font-family: var(--mono);
+      font-size: 22px;
+      padding: 12px 16px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      -moz-appearance: textfield;
+    }
+
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+    input[type="number"]:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(232,74,58,0.12);
+    }
+
+    input[type="number"].error { border-color: var(--danger); }
+
+    .btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 3px;
+      font-family: var(--mono);
+      font-size: 13px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 14px 28px;
+      cursor: pointer;
+      font-weight: 700;
+      transition: background 0.15s, transform 0.1s;
+      white-space: nowrap;
+    }
+
+    .btn:hover { background: #ff5e4e; }
+    .btn:active { transform: scale(0.97); }
+
+    .result-wrap {
+      margin-top: 32px;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+
+    .result-wrap.visible { opacity: 1; transform: none; }
+
+    .result-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+    }
+
+    .result-box {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 20px 22px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .result-box::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0;
+      width: 3px; height: 100%;
+      background: var(--accent);
+    }
+
+    .result-box.orange::before { background: var(--accent2); }
+
+    .result-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .result-value {
+      font-family: var(--mono);
+      font-size: 36px;
+      font-weight: 400;
+      color: #fff;
+      line-height: 1;
+    }
+
+    .result-unit {
+      font-size: 14px;
+      color: var(--muted);
+      margin-left: 4px;
+    }
+
+    .warning-box {
+      margin-top: 22px;
+      background: rgba(232, 74, 58, 0.07);
+      border: 1px solid rgba(232, 74, 58, 0.25);
+      border-left: 3px solid var(--accent);
+      border-radius: 3px;
+      padding: 14px 16px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .warning-icon { font-size: 15px; flex-shrink: 0; margin-top: 2px; }
+
+    .warning-text {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: #c8a0a0;
+      line-height: 1.75;
+    }
+
+    .warning-text strong {
+      color: var(--accent2);
+      display: block;
+      margin-bottom: 5px;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    .error-msg {
+      margin-top: 10px;
+      font-size: 12px;
+      font-family: var(--mono);
+      color: var(--danger);
+      display: none;
+    }
+
+    .table-wrap { overflow-x: auto; margin-top: 8px; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--mono);
+      font-size: 13px;
+    }
+
+    thead th {
+      text-align: left;
+      padding: 8px 14px;
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--accent);
+      border-bottom: 1px solid var(--border);
+    }
+
+    tbody tr {
+      border-bottom: 1px solid rgba(46,26,26,0.6);
+      transition: background 0.15s;
+    }
+
+    tbody tr:hover { background: rgba(232,74,58,0.05); }
+    tbody tr.highlight { background: rgba(232,74,58,0.13); }
+
+    tbody td { padding: 7px 14px; color: var(--text); }
+
+    .table-note {
+      margin-top: 18px;
+      font-size: 12px;
+      font-family: var(--mono);
+      color: var(--muted);
+      border-left: 2px solid var(--border);
+      padding-left: 12px;
+      line-height: 1.6;
+    }
+
+    footer {
+      margin-top: 48px;
+      font-size: 11px;
+      font-family: var(--mono);
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+<div class="wrapper">
+
+  <header>
+    <h1>Sertlik <span>Dönüştürücü</span></h1>
+  </header>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('shore-a')">Shore A → D</button>
+    <button class="tab" onclick="switchTab('table')">Referans Tablosu</button>
+  </div>
+
+  <!-- ── Panel 1: Shore A → D ── -->
+  <div class="panel active card" id="panel-shore-a">
+    <div class="input-group">
+      <div class="field">
+        <label>Shore A Girişi</label>
+        <input type="number" id="in-shore-a" placeholder="0–100" min="0" max="100" step="0.1" oninput="calcShoreA()" />
+      </div>
+      <button class="btn" onclick="calcShoreA()">Dönüştür</button>
+    </div>
+    <div class="error-msg" id="err-shore-a">⚠ Güvenilir sonuçlar için değer 30–100 arasında olmalıdır.</div>
+
+    <div class="result-wrap" id="res-shore-a">
+      <div class="result-grid">
+        <div class="result-box">
+          <div class="result-label">Shore A (Giriş)</div>
+          <div class="result-value" id="out-sa-in">—<span class="result-unit">ShA</span></div>
+        </div>
+        <div class="result-box orange">
+          <div class="result-label">Shore D</div>
+          <div class="result-value" id="out-sa-d">—<span class="result-unit">ShD</span></div>
+        </div>
+      </div>
+
+      <div class="warning-box">
+        <div class="warning-icon">⚠</div>
+        <div class="warning-text">
+          <strong>Uyarı — Tahmini Değer</strong>
+          Bu sonuç kesin bir ölçüm değildir. Dönüşüm, laboratuvar grafiğinden elde edilen
+          referans noktalarına dayalı doğrusal interpolasyon yöntemiyle hesaplanmaktadır.
+          Sonuçlar yalnızca yaklaşık tahmin niteliği taşır. Kesin değerler için
+          standart test yöntemleri uygulanmalıdır.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Panel 2: Reference Table ── -->
+  <div class="panel card" id="panel-table">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Shore A</th>
+            <th>Shore D</th>
+            <th>IRHD (yaklaşık)</th>
+          </tr>
+        </thead>
+        <tbody id="ref-tbody"></tbody>
+      </table>
+    </div>
+    <p class="table-note">Referans veriler ISO 7619 / ASTM D2240 dönüşüm grafiğine aittir. Tüm değerler yaklaşıktır.</p>
+  </div>
+
+  <footer>Shore Sertlik Dönüştürücü · Tüm hesaplamalar tarayıcınızda yapılır · Veri gönderilmez</footer>
+
+</div>
+
+<script>
+  const SHORE_A = [30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95, 100];
+  const SHORE_D = [ 6,  7,  8, 10, 12, 14, 16, 19, 22, 25, 29, 33, 39, 46,  58];
+  const IRHD    = [28, 35, 39, 44, 49, 54, 62, 64, 68, 74, 80, 85, 90, 95, 100];
+
+  function interp(x, xs, ys) {
+    if (x <= xs[0]) return ys[0];
+    if (x >= xs[xs.length - 1]) return ys[ys.length - 1];
+    for (let i = 0; i < xs.length - 1; i++) {
+      if (x >= xs[i] && x <= xs[i + 1]) {
+        const t = (x - xs[i]) / (xs[i + 1] - xs[i]);
+        return ys[i] + t * (ys[i + 1] - ys[i]);
+      }
+    }
+  }
+
+  function switchTab(name) {
+    document.querySelectorAll('.tab').forEach((t, i) => {
+      t.classList.toggle('active', ['shore-a', 'table'][i] === name);
+    });
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    const panel = document.getElementById('panel-' + name);
+    panel.classList.add('active');
+    panel.style.animation = 'none';
+    void panel.offsetWidth;
+    panel.style.animation = '';
+  }
+
+  function calcShoreA() {
+    const raw = document.getElementById('in-shore-a').value;
+    const inp = document.getElementById('in-shore-a');
+    const err = document.getElementById('err-shore-a');
+    const res = document.getElementById('res-shore-a');
+
+    if (raw === '' || raw === null) { res.classList.remove('visible'); return; }
+    const v = parseFloat(raw);
+
+    const outOfRange = v < 30 || v > 100;
+    err.style.display = outOfRange ? 'block' : 'none';
+    inp.classList.toggle('error', outOfRange);
+
+    const d = interp(v, SHORE_A, SHORE_D);
+    document.getElementById('out-sa-in').innerHTML = v.toFixed(1) + '<span class="result-unit">ShA</span>';
+    document.getElementById('out-sa-d').innerHTML  = d.toFixed(1) + '<span class="result-unit">ShD</span>';
+    res.classList.add('visible');
+    highlightRow(v);
+  }
+
+  function buildTable() {
+    const tbody = document.getElementById('ref-tbody');
+    SHORE_A.forEach((sa, i) => {
+      const tr = document.createElement('tr');
+      tr.id = 'row-' + sa;
+      tr.innerHTML = `<td>${sa}</td><td>${SHORE_D[i]}</td><td>≈ ${IRHD[i]}</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function highlightRow(shoreA) {
+    document.querySelectorAll('#ref-tbody tr').forEach(r => r.classList.remove('highlight'));
+    let nearest = SHORE_A.reduce((a, b) => Math.abs(b - shoreA) < Math.abs(a - shoreA) ? b : a);
+    const row = document.getElementById('row-' + nearest);
+    if (row) row.classList.add('highlight');
+  }
+
+  buildTable();
+</script>
+</body>
+</html>
